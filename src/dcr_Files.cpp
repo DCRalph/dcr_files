@@ -3,7 +3,7 @@
 #include "dcr_IFileStorage.h"
 #include <LittleFS.h>
 #include <dcr_Logger.h>
-#include <dcr_MutexRegistry.h>
+#include <dcr_taskManager/MutexRegistry.h>
 #include <esp_heap_caps.h>
 
 #undef LOG_TAG
