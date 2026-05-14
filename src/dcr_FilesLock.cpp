@@ -1,7 +1,7 @@
-#include "files/Files.h"
-#include "files/Files_Internal.h"
+#include "dcr_Files.h"
+#include "dcr_Files_Internal.h"
 #include <LittleFS.h>
-#include <logger/Logger.h>
+#include <dcr_Logger.h>
 #include <mutex>
 
 #undef LOG_TAG

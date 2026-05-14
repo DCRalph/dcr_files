@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
-#include <FreeRtosRaii.h>
+#include <dcr_FreeRtosRaii.h>
 #include <LittleFS.h>
 
 namespace Files
