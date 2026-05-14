@@ -4,19 +4,24 @@
   "description": "ESP32 LittleFS file storage helpers.",
   "keywords": "esp32, arduino, littlefs, filesystem, storage",
   "frameworks": "arduino",
-  "platforms": ["espressif32"],
+  "platforms": [
+    "espressif32"
+  ],
   "authors": {
     "name": "William Giles",
     "email": "me@williamgiles.co.nz",
     "url": "https://github.com/DCRalph"
   },
-  "dependencies": {
-    "bblanchon/ArduinoJson": "^7"
-  },
+  "dependencies": {},
   "build": {
     "srcDir": ".",
     "includeDir": ".",
-    "unflags": ["-std=gnu++11", "-std=gnu++14"],
-    "flags": ["-std=gnu++17"]
+    "unflags": [
+      "-std=gnu++11",
+      "-std=gnu++14"
+    ],
+    "flags": [
+      "-std=gnu++17"
+    ]
   }
 }

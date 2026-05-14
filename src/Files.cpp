@@ -798,7 +798,6 @@ namespace Files
         return fileSize;
     }
 
-
     void logMemoryUsage(const String &context)
     {
         debugD("%s - Free heap: %d bytes, Largest free block: %d bytes",
@@ -876,4 +875,3 @@ namespace
 }
 
 IFileStorage &fileStorage = gFileStorage;
-
