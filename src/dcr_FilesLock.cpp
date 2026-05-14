@@ -132,36 +132,21 @@ namespace Files
                 }
             }
 
-            bool prevSave = logger.isSaveToFile();
-            logger.noSave();
-            logger.pauseSecondarySink();
-
             File file = LittleFS.open(filename, "a");
             if (!file)
             {
                 debugE("Failed to open file for appending: %s", filename.c_str());
                 unlock(filename, token);
-                if (prevSave)
-                    logger.save();
-                logger.resumeSecondarySink();
                 return false;
             }
 
             bool success = file.print(data);
             file.close();
 
-            if (prevSave)
-                logger.save();
-            logger.resumeSecondarySink();
-
             if (success)
-            {
                 debugI("File appended: %s", filename.c_str());
-            }
             else
-            {
                 debugE("Append failed: %s", filename.c_str());
-            }
 
             unlock(filename, token);
             return success;

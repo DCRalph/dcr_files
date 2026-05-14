@@ -221,17 +221,10 @@ namespace Files
             return 0;
         }
 
-        bool prevSave = logger.isSaveToFile();
-        logger.noSave();
-        logger.pauseSecondarySink();
-
         File file = LittleFS.open(filename, "r");
         if (!file)
         {
             debugE("Failed to open file for reading: %s", filename.c_str());
-            if (prevSave)
-                logger.save();
-            logger.resumeSecondarySink();
             return 0;
         }
 
@@ -240,9 +233,6 @@ namespace Files
         size_t bytesRead = file.read(data, bytesToRead);
 
         file.close();
-        if (prevSave)
-            logger.save();
-        logger.resumeSecondarySink();
 
         if (bytesRead > 0)
         {
@@ -260,17 +250,10 @@ namespace Files
             debugW("Reading from locked file: %s", filename.c_str());
         }
 
-        bool prevSave = logger.isSaveToFile();
-        logger.noSave();
-        logger.pauseSecondarySink();
-
         File file = LittleFS.open(filename, "r");
         if (!file)
         {
             debugE("Failed to open file for reading: %s", filename.c_str());
-            if (prevSave)
-                logger.save();
-            logger.resumeSecondarySink();
             return "";
         }
 
@@ -280,9 +263,7 @@ namespace Files
         {
             debugE("Failed to reserve memory for file: %s", filename.c_str());
             file.close();
-            if (prevSave)
-                logger.save();
-            logger.resumeSecondarySink();
+
             return "";
         }
 
@@ -300,33 +281,22 @@ namespace Files
             {
                 debugE("Failed to append file contents: %s", filename.c_str());
                 file.close();
-                if (prevSave)
-                    logger.save();
-                logger.resumeSecondarySink();
+
                 return "";
             }
         }
         file.close();
 
-        if (prevSave)
-            logger.save();
-        logger.resumeSecondarySink();
         return data;
     }
 
     char *getFileAsString(const String &path)
     {
         std::lock_guard<FreeRtosRaii::RecursiveMutex> fsLock(filesFsMutex());
-        bool prevSave = logger.isSaveToFile();
-        logger.noSave();
-        logger.pauseSecondarySink();
 
         File file = LittleFS.open(path);
         if (!file)
         {
-            if (prevSave)
-                logger.save();
-            logger.resumeSecondarySink();
             return nullptr;
         }
 
@@ -334,9 +304,6 @@ namespace Files
         if (fileSize == 0)
         {
             file.close();
-            if (prevSave)
-                logger.save();
-            logger.resumeSecondarySink();
             return nullptr;
         }
 
@@ -345,18 +312,12 @@ namespace Files
         {
             debugE("Failed to allocate memory for file: %s", path.c_str());
             file.close();
-            if (prevSave)
-                logger.save();
-            logger.resumeSecondarySink();
+
             return nullptr;
         }
 
         size_t bytesRead = file.readBytes(buffer, fileSize);
         file.close();
-
-        if (prevSave)
-            logger.save();
-        logger.resumeSecondarySink();
 
         if (bytesRead != fileSize)
         {
@@ -386,17 +347,11 @@ namespace Files
             tempLocked = true;
         }
 
-        bool prevSave = logger.isSaveToFile();
-        logger.noSave();
-        logger.pauseSecondarySink();
-
         if (!ensureFileExists(filename, true))
         {
             if (tempLocked)
                 Lock::unlock(filename, workingToken);
-            if (prevSave)
-                logger.save();
-            logger.resumeSecondarySink();
+
             return;
         }
 
@@ -406,30 +361,18 @@ namespace Files
             debugE("Failed to open file for appending: %s", filename.c_str());
             if (tempLocked)
                 Lock::unlock(filename, workingToken);
-            if (prevSave)
-                logger.save();
-            logger.resumeSecondarySink();
+
             return;
         }
 
         if (file.print(data))
-        {
-            if (!prevSave)
-            {
-                debugD("Message appended: %s", filename.c_str());
-            }
-        }
+            debugD("Message appended: %s", filename.c_str());
         else
-        {
             debugE("Append failed: %s", filename.c_str());
-        }
 
         file.close();
         if (tempLocked)
             Lock::unlock(filename, workingToken);
-        if (prevSave)
-            logger.save();
-        logger.resumeSecondarySink();
     }
 
     void appendToFile(const String &filename, const String &data)
