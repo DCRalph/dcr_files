@@ -1,6 +1,7 @@
 {
   "name": "dcr_files",
   "version": "1.0.0",
+  "license": "AGPL-3.0",
   "description": "ESP32 LittleFS file storage helpers.",
   "keywords": "esp32, arduino, littlefs, filesystem, storage",
   "frameworks": "arduino",
