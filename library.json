@@ -1,0 +1,22 @@
+{
+  "name": "dcr_files",
+  "version": "1.0.0",
+  "description": "ESP32 LittleFS file storage helpers.",
+  "keywords": "esp32, arduino, littlefs, filesystem, storage",
+  "frameworks": "arduino",
+  "platforms": ["espressif32"],
+  "authors": {
+    "name": "William Giles",
+    "email": "me@williamgiles.co.nz",
+    "url": "https://github.com/DCRalph"
+  },
+  "dependencies": {
+    "bblanchon/ArduinoJson": "^7"
+  },
+  "build": {
+    "srcDir": ".",
+    "includeDir": ".",
+    "unflags": ["-std=gnu++11", "-std=gnu++14"],
+    "flags": ["-std=gnu++17"]
+  }
+}
