@@ -2,6 +2,8 @@
 #include "dcr_Files_Internal.h"
 #include "dcr_IFileStorage.h"
 #include <LittleFS.h>
+#include <cerrno>
+#include <cstring>
 #include <dcr_Logger.h>
 #include <dcr_taskManager/MutexRegistry.h>
 #include <esp_heap_caps.h>
@@ -73,6 +75,12 @@ bool checkLockPermission(String filename, String token, const String &operation)
 namespace
 {
     constexpr size_t FILE_READ_CHUNK_SIZE = 512;
+
+    // VFS sets errno on failure; clear it before the call so a stale value isn't reported.
+    const char *fsError()
+    {
+        return errno ? strerror(errno) : "unknown";
+    }
 }
 
 namespace Files
@@ -114,12 +122,13 @@ namespace Files
             return true;
         }
 
+        errno = 0;
         File file = LittleFS.open(normalized, "w");
         if (!file)
         {
             if (logError)
             {
-                debugE("Failed to create file: %s", normalized.c_str());
+                debugE("Failed to create file: %s (%s)", normalized.c_str(), fsError());
             }
             return false;
         }
@@ -134,16 +143,18 @@ namespace Files
         if (!checkLockPermission(filename, token, "Write"))
             return;
 
+        errno = 0;
         File file = LittleFS.open(filename, "w");
         if (!file)
         {
             if (logError)
             {
-                debugE("Failed to open file for writing: %s", filename.c_str());
+                debugE("Failed to open file for writing: %s (%s)", filename.c_str(), fsError());
             }
             return;
         }
 
+        errno = 0;
         if (file.print(data))
         {
             debugD("File written: %s", filename.c_str());
@@ -152,7 +163,7 @@ namespace Files
         {
             if (logError)
             {
-                debugE("Write failed: %s", filename.c_str());
+                debugE("Write failed: %s (%s)", filename.c_str(), fsError());
             }
         }
         file.close();
@@ -175,12 +186,13 @@ namespace Files
             return;
         }
 
+        errno = 0;
         File file = LittleFS.open(filename, "w");
         if (!file)
         {
             if (logError)
             {
-                debugE("Failed to open file for writing: %s", filename.c_str());
+                debugE("Failed to open file for writing: %s (%s)", filename.c_str(), fsError());
             }
             return;
         }
@@ -221,10 +233,11 @@ namespace Files
             return 0;
         }
 
+        errno = 0;
         File file = LittleFS.open(filename, "r");
         if (!file)
         {
-            debugE("Failed to open file for reading: %s", filename.c_str());
+            debugE("Failed to open file for reading: %s (%s)", filename.c_str(), fsError());
             return 0;
         }
 
@@ -250,10 +263,11 @@ namespace Files
             debugW("Reading from locked file: %s", filename.c_str());
         }
 
+        errno = 0;
         File file = LittleFS.open(filename, "r");
         if (!file)
         {
-            debugE("Failed to open file for reading: %s", filename.c_str());
+            debugE("Failed to open file for reading: %s (%s)", filename.c_str(), fsError());
             return "";
         }
 
@@ -355,20 +369,22 @@ namespace Files
             return;
         }
 
+        errno = 0;
         File file = LittleFS.open(filename, "a");
         if (!file)
         {
-            debugE("Failed to open file for appending: %s", filename.c_str());
+            debugE("Failed to open file for appending: %s (%s)", filename.c_str(), fsError());
             if (tempLocked)
                 Lock::unlock(filename, workingToken);
 
             return;
         }
 
+        errno = 0;
         if (file.print(data))
             debugD("Message appended: %s", filename.c_str());
         else
-            debugE("Append failed: %s", filename.c_str());
+            debugE("Append failed: %s (%s)", filename.c_str(), fsError());
 
         file.close();
         if (tempLocked)
@@ -386,6 +402,7 @@ namespace Files
         if (!checkLockPermission(filename, token, "Delete"))
             return false;
 
+        errno = 0;
         if (LittleFS.remove(filename))
         {
             debugD("File deleted: %s", filename.c_str());
@@ -401,7 +418,7 @@ namespace Files
         }
         else
         {
-            debugE("Delete failed: %s", filename.c_str());
+            debugE("Delete failed: %s (%s)", filename.c_str(), fsError());
             return false;
         }
     }
@@ -414,23 +431,25 @@ namespace Files
     void createDir(String dir)
     {
         std::lock_guard<FreeRtosRaii::RecursiveMutex> fsLock(filesFsMutex());
+        errno = 0;
         if (LittleFS.mkdir(dir))
         {
             debugD("Dir created: %s", dir.c_str());
         }
         else
         {
-            debugE("Create dir failed: %s", dir.c_str());
+            debugE("Create dir failed: %s (%s)", dir.c_str(), fsError());
         }
     }
 
     void deleteDir(String dir)
     {
         std::lock_guard<FreeRtosRaii::RecursiveMutex> fsLock(filesFsMutex());
+        errno = 0;
         File root = LittleFS.open(dir);
         if (!root)
         {
-            debugE("Failed to open directory for deleting: %s", dir.c_str());
+            debugE("Failed to open directory for deleting: %s (%s)", dir.c_str(), fsError());
             return;
         }
         if (!root.isDirectory())
@@ -462,25 +481,27 @@ namespace Files
         }
         root.close();
 
+        errno = 0;
         if (LittleFS.rmdir(dir))
         {
             debugD("Dir deleted: %s", dir.c_str());
         }
         else
         {
-            debugE("Delete dir failed: %s", dir.c_str());
+            debugE("Delete dir failed: %s (%s)", dir.c_str(), fsError());
         }
     }
 
     String listDir(String dir, int indent)
     {
         std::lock_guard<FreeRtosRaii::RecursiveMutex> fsLock(filesFsMutex());
+        errno = 0;
         File root = LittleFS.open(dir);
         String output = "";
 
         if (!root)
         {
-            debugE("Failed to open directory: %s", dir.c_str());
+            debugE("Failed to open directory: %s (%s)", dir.c_str(), fsError());
             return "[ERROR] [LittleFS] Failed to open directory: " + dir + "\n";
         }
         if (!root.isDirectory())
@@ -543,6 +564,7 @@ namespace Files
         if (!checkLockPermission(newName, "", "Rename"))
             return;
 
+        errno = 0;
         if (LittleFS.rename(oldName, newName))
         {
             debugD("File renamed: %s -> %s", oldName.c_str(), newName.c_str());
@@ -559,20 +581,21 @@ namespace Files
         }
         else
         {
-            debugE("Rename failed: %s -> %s", oldName.c_str(), newName.c_str());
+            debugE("Rename failed: %s -> %s (%s)", oldName.c_str(), newName.c_str(), fsError());
         }
     }
 
     void renameDir(String oldName, String newName)
     {
         std::lock_guard<FreeRtosRaii::RecursiveMutex> fsLock(filesFsMutex());
+        errno = 0;
         if (LittleFS.rename(oldName, newName))
         {
             debugD("Dir renamed: %s -> %s", oldName.c_str(), newName.c_str());
         }
         else
         {
-            debugE("Rename dir failed: %s -> %s", oldName.c_str(), newName.c_str());
+            debugE("Rename dir failed: %s -> %s (%s)", oldName.c_str(), newName.c_str(), fsError());
         }
     }
 
@@ -586,17 +609,19 @@ namespace Files
         if (!checkLockPermission(newName, "", "Copy"))
             return;
 
+        errno = 0;
         File sourceFile = LittleFS.open(oldName, "r");
         if (!sourceFile)
         {
-            debugE("Failed to open source file: %s", oldName.c_str());
+            debugE("Failed to open source file: %s (%s)", oldName.c_str(), fsError());
             return;
         }
 
+        errno = 0;
         File destFile = LittleFS.open(newName, "w");
         if (!destFile)
         {
-            debugE("Failed to open destination file: %s", newName.c_str());
+            debugE("Failed to open destination file: %s (%s)", newName.c_str(), fsError());
             sourceFile.close();
             return;
         }
@@ -607,9 +632,10 @@ namespace Files
         while (sourceFile.available())
         {
             size_t bytesRead = sourceFile.read(buffer, bufferSize);
+            errno = 0;
             if (destFile.write(buffer, bytesRead) != bytesRead)
             {
-                debugE("Copy write failed: %s", newName.c_str());
+                debugE("Copy write failed: %s (%s)", newName.c_str(), fsError());
                 break;
             }
         }
@@ -631,9 +657,10 @@ namespace Files
             return;
         }
 
+        errno = 0;
         if (!LittleFS.mkdir(newName))
         {
-            debugE("Failed to create destination directory: %s", newName.c_str());
+            debugE("Failed to create destination directory: %s (%s)", newName.c_str(), fsError());
             root.close();
             return;
         }
@@ -728,10 +755,11 @@ namespace Files
             debugW("Getting size of locked file: %s", filename.c_str());
         }
 
+        errno = 0;
         File file = LittleFS.open(filename, "r");
         if (!file)
         {
-            debugE("Failed to open file for reading size: %s", filename.c_str());
+            debugE("Failed to open file for reading size: %s (%s)", filename.c_str(), fsError());
             return 0;
         }
 
